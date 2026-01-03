@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 set -e
 
-echo "[*] Installing audio streaming packages..."
-
-sudo apt-get update -y
-sudo apt-get install -y \
-    icecast2 pulseaudio ffmpeg
-
-echo "[*] Configuring PulseAudio..."
-
+echo "[*] Starting PulseAudio..."
 pulseaudio -k 2>/dev/null || true
 pulseaudio --start --exit-idle-time=-1
 
-echo "[*] Starting Icecast2..."
+echo "[*] Creating virtual audio sink..."
+pactl load-module module-null-sink sink_name=virtual_sink sink_properties=device.description=VirtualSink
+
+echo "[*] Restarting Icecast2..."
 sudo service icecast2 restart
 
-echo "[*] Starting ffmpeg audio stream (PulseAudio → Icecast)..."
+echo "[*] Starting low-latency ffmpeg stream..."
 
-ffmpeg -f pulse -i default -ac 2 -ar 44100 -b:a 128k \
-    -content_type audio/mpeg \
-    -f mp3 icecast://source:vncpass@localhost:8000/stream.mp3
+ffmpeg -f pulse -i virtual_sink.monitor \
+  -ac 2 -ar 44100 -b:a 128k \
+  -content_type audio/mpeg \
+  -fflags nobuffer \
+  -flags low_delay \
+  -max_delay 0 \
+  -f mp3 icecast://source:vncpass@localhost:8000/stream.mp3
