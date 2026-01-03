@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<body>
+<button id="start">音声再生を開始</button>
+
+<script>
+let audioCtx;
+let ws;
+let queue = [];
+let isPlaying = false;
+
+document.getElementById("start").onclick = () => {
+  audioCtx = new AudioContext({ sampleRate: 48000 });  // ← 48000Hz に固定
+  ws = new WebSocket(location.origin.replace("https", "wss"));
+  ws.binaryType = "arraybuffer";
+
+  ws.onmessage = (event) => {
+    const pcm = new Int16Array(event.data);
+    const float32 = new Float32Array(pcm.length);
+
+    for (let i = 0; i < pcm.length; i++) {
+      float32[i] = pcm[i] / 32768;
+    }
+
+    queue.push(float32);
+
+    if (!isPlaying && queue.length > 3) {
+      isPlaying = true;
+      playLoop();
+    }
+  };
+};
+
+function playLoop() {
+  if (queue.length === 0) {
+    isPlaying = false;
+    return;
+  }
+
+  const float32 = queue.shift();
+  const buffer = audioCtx.createBuffer(1, float32.length, 48000); // ← 48000Hz に合わせる
+  buffer.copyToChannel(float32, 0);
+
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  src.connect(audioCtx.destination);
+  src.onended = playLoop;
+  src.start();
+}
+</script>
+</body>
+</html>
