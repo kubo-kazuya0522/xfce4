@@ -11,12 +11,16 @@ pactl load-module module-null-sink sink_name=virtual_sink sink_properties=device
 echo "[*] Restarting Icecast2..."
 sudo service icecast2 restart
 
-echo "[*] Starting low-latency ffmpeg stream..."
+echo "[*] Starting ultra low-latency ffmpeg stream (OGG)..."
 
 ffmpeg -f pulse -i virtual_sink.monitor \
-  -ac 2 -ar 44100 -b:a 128k \
-  -content_type audio/mpeg \
+  -ac 2 -ar 20000 \
+  -b:a 64k \
+  -compression_level 0 \
+  -application voip \
+  -content_type application/ogg \
   -fflags nobuffer \
   -flags low_delay \
   -max_delay 0 \
-  -f mp3 icecast://source:vncpass@localhost:8000/stream.mp3
+  -flush_packets 1 \
+  -f ogg icecast://source:vncpass@localhost:8000/stream.ogg
