@@ -9,15 +9,15 @@
 let audioCtx;
 let ws;
 let scriptNode;
-let ringBuffer = new Float32Array(22050 * 2); // 約2秒分
+let ringBuffer = new Float32Array(32000 * 2); // 約2秒分
 let writePos = 0;
 let readPos = 0;
 
 document.getElementById("start").onclick = () => {
-  audioCtx = new AudioContext({ sampleRate: 22050 });
+  audioCtx = new AudioContext({ sampleRate: 32000 });
 
   // 古いが AudioWorklet なしでリアルタイム再生できる
-  scriptNode = audioCtx.createScriptProcessor(1024, 1, 1);
+  scriptNode = audioCtx.createScriptProcessor(2048, 1, 1);
 
   scriptNode.onaudioprocess = (e) => {
     const output = e.outputBuffer.getChannelData(0);
