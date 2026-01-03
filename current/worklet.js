@@ -4,7 +4,7 @@ class PCMPlayer extends AudioWorkletProcessor {
     this.buffer = new Float32Array(0);
 
     // 少し余裕を持たせる（約 250〜300ms）
-    this.maxBuffer = 6400;
+    this.maxBuffer = 30000;
 
     this.port.onmessage = (event) => {
 

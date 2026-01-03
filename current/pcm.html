@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>PCM streaming (Improved WebSocket version)</h2>
+<button id="start">音声再生を開始</button>
+<div>遅延の体感: 約1.2〜1.8秒</div>
+
+<script>
+let audioCtx;
+let ws;
+let scriptNode;
+let ringBuffer = new Float32Array(22050 * 2); // 約2秒分
+let writePos = 0;
+let readPos = 0;
+
+document.getElementById("start").onclick = () => {
+  audioCtx = new AudioContext({ sampleRate: 22050 });
+
+  // 古いが AudioWorklet なしでリアルタイム再生できる
+  scriptNode = audioCtx.createScriptProcessor(1024, 1, 1);
+
+  scriptNode.onaudioprocess = (e) => {
+    const output = e.outputBuffer.getChannelData(0);
+
+    for (let i = 0; i < output.length; i++) {
+      if (readPos !== writePos) {
+        output[i] = ringBuffer[readPos];
+        readPos = (readPos + 1) % ringBuffer.length;
+      } else {
+        output[i] = 0; // 無音で埋める
+      }
+    }
+  };
+
+  scriptNode.connect(audioCtx.destination);
+
+  ws = new WebSocket(location.origin.replace("https", "wss") + "/pcm-ws");
+  ws.binaryType = "arraybuffer";
+
+  ws.onmessage = (event) => {
+    const float32 = new Float32Array(event.data);
+
+    for (let i = 0; i < float32.length; i++) {
+      ringBuffer[writePos] = float32[i];
+      writePos = (writePos + 1) % ringBuffer.length;
+    }
+  };
+};
+</script>
+</body>
+</html>
