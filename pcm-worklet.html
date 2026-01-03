@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html>
 <body>
-<h2>PCM streaming (AudioWorklet 最適化版)</h2>
+<h2>PCM streaming (AudioWorklet 最速版)</h2>
 <button id="start">再生開始</button>
-<p>遅延は 1.0〜1.5 秒を目指します。</p>
+<p>遅延は 0.8〜1.3 秒を目指します。</p>
 
 <script>
 let audioCtx;
 let ws;
 
 document.getElementById("start").onclick = async () => {
-  audioCtx = new AudioContext({ sampleRate: 16000 });
+  audioCtx = new AudioContext({
+    sampleRate: 22050,
+    latencyHint: "interactive"
+  });
 
-  // AudioWorklet を読み込む
   await audioCtx.audioWorklet.addModule("worklet.js");
 
   const workletNode = new AudioWorkletNode(audioCtx, "pcm-player");

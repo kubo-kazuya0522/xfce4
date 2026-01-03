@@ -16,7 +16,7 @@ const server = http.createServer((req, res) => {
     res.end(html);
     return;
 
-  } else if (req.url === "/pcm-worklet") {   // ← 追加した部分
+  } else if (req.url === "/pcm-worklet") {
     const filePath = path.join(__dirname, "pcm-worklet.html");
     const html = fs.readFileSync(filePath);
     res.writeHead(200, { "Content-Type": "text/html" });
@@ -30,7 +30,7 @@ const server = http.createServer((req, res) => {
     res.end(html);
     return;
 
-  } else if (req.url === "/worklet.js") {   // ← AudioWorklet 用
+  } else if (req.url === "/worklet.js") {
     const filePath = path.join(__dirname, "worklet.js");
     const js = fs.readFileSync(filePath);
     res.writeHead(200, { "Content-Type": "application/javascript" });
@@ -49,6 +49,7 @@ let pcmClients = [];
 
 wssPcm.on("connection", (ws) => {
   console.log("PCM client connected");
+  ws._socket.setNoDelay(true); // ← TCP遅延削減
   pcmClients.push(ws);
 
   ws.on("close", () => {
@@ -56,8 +57,9 @@ wssPcm.on("connection", (ws) => {
   });
 });
 
-// HTTP Upgrade で /pcm-ws にだけ WebSocket 接続許可
+// HTTP Upgrade
 server.on("upgrade", (req, socket, head) => {
+  socket.setNoDelay(true); // ← ここも重要
   if (req.url === "/pcm-ws") {
     wssPcm.handleUpgrade(req, socket, head, (ws) => {
       wssPcm.emit("connection", ws, req);
@@ -67,22 +69,29 @@ server.on("upgrade", (req, socket, head) => {
   }
 });
 
-// ---- ffmpeg → PCM（16kHz, mono） ----
+// ---- ffmpeg → PCM（最速設定） ----
 const ffmpeg = spawn("ffmpeg", [
+  "-flags", "low_delay",
   "-f", "pulse",
   "-i", "virtual_sink.monitor",
-  "-ac", "1",          // モノラルに変換（データ量を半分にして遅延を減らす）
-  "-ar", "16000",      // 16kHz に変換（あなたの環境で一番安定していた）
-  "-f", "s16le",
-  "-flush_packets", "0",
+  "-ac", "1",
+  "-ar", "22050",
+  "-f", "f32le",
+  "-flush_packets", "1",
   "-max_delay", "0",
   "pipe:1"
 ]);
 
+
+// ---- WebSocket 送信（小さめチャンク） ----
 ffmpeg.stdout.on("data", (chunk) => {
-  for (const ws of pcmClients) {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(chunk);
+  const size = 2048; // 2KBごとに送る
+  for (let i = 0; i < chunk.length; i += size) {
+    const slice = chunk.subarray(i, i + size);
+    for (const ws of pcmClients) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(slice);
+      }
     }
   }
 });
