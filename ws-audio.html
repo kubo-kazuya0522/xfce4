@@ -10,7 +10,7 @@ let queue = [];
 let isPlaying = false;
 
 document.getElementById("start").onclick = () => {
-  audioCtx = new AudioContext({ sampleRate: 48000 });  // ← 48000Hz に固定
+  audioCtx = new AudioContext({ sampleRate: 30000 });  // ← 48000Hz に固定
   ws = new WebSocket(location.origin.replace("https", "wss"));
   ws.binaryType = "arraybuffer";
 
@@ -38,7 +38,7 @@ function playLoop() {
   }
 
   const float32 = queue.shift();
-  const buffer = audioCtx.createBuffer(1, float32.length, 48000); // ← 48000Hz に合わせる
+  const buffer = audioCtx.createBuffer(1, float32.length, 30000); // ← 48000Hz に合わせる
   buffer.copyToChannel(float32, 0);
 
   const src = audioCtx.createBufferSource();

@@ -34,8 +34,10 @@ const ffmpeg = spawn("ffmpeg", [
   "-f", "pulse",
   "-i", "virtual_sink.monitor",
   "-ac", "1",
-  "-ar", "48000",
+  "-ar", "29000",
   "-f", "s16le",
+  "-flush_packets", "0", 
+  "-max_delay", "0",
   "pipe:1"
 ]);
 
