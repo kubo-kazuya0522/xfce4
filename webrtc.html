@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>WebRTC loopback (最小構成)</h2>
+<button id="start">WebRTC を開始</button>
+
+<p>ボタンを押して「アー」と声を出すと、<br>
+WebRTC 経由で自分の声が返ってきます。<br>
+遅延は 0.3〜0.7 秒くらいになるはず。</p>
+
+<script>
+document.getElementById("start").onclick = async () => {
+  // マイク取得
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+  // PeerConnection を2つ作る（送信側と受信側）
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+
+  // pc1 にマイク音声を追加
+  stream.getTracks().forEach(track => pc1.addTrack(track, stream));
+
+  // pc2 が受信したら再生
+  pc2.ontrack = (event) => {
+    const audio = document.createElement("audio");
+    audio.autoplay = true;
+    audio.srcObject = event.streams[0];
+    document.body.appendChild(audio);
+  };
+
+  // ICE candidate の交換
+  pc1.onicecandidate = (e) => {
+    if (e.candidate) pc2.addIceCandidate(e.candidate);
+  };
+  pc2.onicecandidate = (e) => {
+    if (e.candidate) pc1.addIceCandidate(e.candidate);
+  };
+
+  // SDP の交換
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  await pc2.setRemoteDescription(offer);
+
+  const answer = await pc2.createAnswer();
+  await pc2.setLocalDescription(answer);
+  await pc1.setRemoteDescription(answer);
+};
+</script>
+</body>
+</html>
