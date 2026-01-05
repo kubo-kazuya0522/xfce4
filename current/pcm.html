@@ -14,7 +14,7 @@ let writePos = 0;
 let readPos = 0;
 
 document.getElementById("start").onclick = () => {
-  audioCtx = new AudioContext({ sampleRate: 32000 });
+  audioCtx = new AudioContext({ sampleRate: 44100 });
 
   // 古いが AudioWorklet なしでリアルタイム再生できる
   scriptNode = audioCtx.createScriptProcessor(2048, 1, 1);

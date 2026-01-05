@@ -79,7 +79,7 @@ const ffmpeg = spawn("ffmpeg", [
   "-f", "pulse",
   "-i", "virtual_sink.monitor",
   "-ac", "1",
-  "-ar", "32000",
+  "-ar", "44100",
   "-f", "f32le",
   "-flush_packets", "1",
   "-max_delay", "0",
